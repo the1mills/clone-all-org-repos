@@ -120,7 +120,6 @@ function onUserDataReceived(data) {
 		}
 		else {
 			ijson.parse(res).then(
-
 				function (json) {
 
 					const cloneUrls = json.map(item => String(item.clone_url));
@@ -139,7 +138,7 @@ function onUserDataReceived(data) {
 
 					}, function (err, results) {
 
-						async.each(results.filter(item => !!item), function (item, cb) {
+						async.mapSeries(results.filter(item => !!item), function (item, cb) {
 
 							const endian = path.basename(path.normalize(item).split('/').pop()).replace('.git', '');
 
@@ -150,10 +149,14 @@ function onUserDataReceived(data) {
 
 						}, function complete(err, results) {
 							if (err) {
-								throw err;
+								console.log(err.stack);
+								process.exit(1);
 							}
 							else {
-								console.log(' => All done here => ' + results);
+								const count = results.length;
+								console.log('\n\n => All done here => ' +
+								(results.length > 0 ? count + ' Github repos cloned.' : ' 0 Github repos cloned.'));
+								process.exit(0);
 							}
 
 						});
