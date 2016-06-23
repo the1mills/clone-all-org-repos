@@ -2,8 +2,19 @@
  * Created by Olegzandr on 6/22/16.
  */
 
+//NOTE:  http://mikedeboer.github.io/node-github/#api-repos-getForOrg
 
-// >>>  http://mikedeboer.github.io/node-github/#api-repos-getForOrg
+
+
+process.on('uncaughtException', function (e) {
+	console.log(e.stack || e);
+});
+
+process.on('unhandledRejected', function (e) {
+	console.log(e.stack || e);
+});
+
+
 
 const cwd = process.cwd();
 
@@ -155,7 +166,7 @@ function onUserDataReceived(data) {
 							else {
 								const count = results.length;
 								console.log('\n\n => All done here => ' +
-								(results.length > 0 ? count + ' Github repos cloned.' : ' 0 Github repos cloned.'));
+									(results.length > 0 ? count + ' Github repos cloned.' : ' 0 Github repos cloned.'));
 								process.exit(0);
 							}
 
@@ -163,8 +174,10 @@ function onUserDataReceived(data) {
 
 					});
 
-				}
-			)
+				},
+				function onRejected(e) {
+					console.log(e.stack || e);
+				})
 		}
 
 	});
