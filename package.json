@@ -2,7 +2,7 @@
   "name": "lectal-meta",
   "version": "1.0.0",
   "description": "lectal meta scripts and files",
-  "main": "clone-all-repos.js",
+  "main": "index.js",
   "scripts": {
     "test": "suman"
   },
@@ -12,5 +12,8 @@
     "async": "^2.0.0-rc.6",
     "github": "^1.4.0",
     "siamese": "^2.0.4"
+  },
+  "bin": {
+    "caGor": "index.js"
   }
 }
