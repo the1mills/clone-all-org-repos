@@ -1,4 +1,4 @@
-#!/usr/bin/env node --harmony
+#!/usr/bin/env node
 
 process.on('uncaughtException', function (e) {
     console.log(e.stack || e);
