@@ -1,6 +1,6 @@
 {
   "name": "lectal-meta",
-  "version": "1.0.1",
+  "version": "1.0.1001",
   "description": "lectal meta scripts and files",
   "main": "index.js",
   "scripts": {
