@@ -15,5 +15,8 @@
   },
   "bin": {
     "caGor": "index.js"
+  },
+  "devDependencies": {
+    "suman": "github:oresoftware/suman#dev"
   }
 }
