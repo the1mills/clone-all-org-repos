@@ -1,7 +1,7 @@
 {
-  "name": "lectal-meta",
-  "version": "1.0.0",
-  "description": "lectal meta scripts and files",
+  "name": "cagor",
+  "version": "0.0.1001",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "suman"
@@ -14,6 +14,6 @@
     "siamese": "^2.0.4"
   },
   "bin": {
-    "caGor": "index.js"
+    "cagor": "index.js"
   }
 }
