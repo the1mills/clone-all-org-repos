@@ -4,7 +4,7 @@ process.on('uncaughtException', function (e) {
     console.log(e.stack || e);
 });
 
-process.on('unhandledRejected', function (e) {
+process.on('unhandledRejection', function (e) {
     console.log(e.stack || e);
 });
 

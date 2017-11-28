@@ -1,0 +1,5 @@
+git config user.email "your_email@example.com"
+
+the tool should ask you which email address to use
+
+this is useful if you are working on stuff from a work laptop, etc.
