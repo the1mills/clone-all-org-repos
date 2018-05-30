@@ -1,19 +1,23 @@
 {
   "name": "cagor",
-  "version": "0.0.1001",
+  "version": "0.0.1002",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "suman"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "async": "^2.0.0-rc.6",
     "github": "^1.4.0",
     "siamese": "^2.0.4"
   },
   "bin": {
+    "caGor": "index.js",
     "cagor": "index.js"
+  },
+  "devDependencies": {
+    "suman": "github:oresoftware/suman#dev"
   }
 }
