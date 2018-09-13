@@ -1,6 +1,7 @@
 'use strict';
+Object.defineProperty(exports, "__esModule", { value: true });
 const GitHubApi = require('github');
-module.exports = new GitHubApi({
+exports.default = new GitHubApi({
     debug: false,
     protocol: 'https',
     host: 'api.github.com',

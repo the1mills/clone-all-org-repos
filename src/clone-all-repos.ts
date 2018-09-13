@@ -3,53 +3,41 @@
 //NOTE:  http://mikedeboer.github.io/node-github/#api-repos-getForOrg
 
 //core
-const util = require('util');
-const path = require('path');
-const cp = require('child_process');
-const fs = require('fs');
+import util = require('util');
+import path = require('path');
+import cp = require('child_process');
+import fs = require('fs');
 
 //npm
-const async = require('async');
-const ijson = require('siamese');
+import async = require('async');
+import ijson = require('siamese');
 
 //project
-const helperModule = require('./helper');
-
-let helper;
-const userSaidYes = require('./user-said-yes');
-const setData = require('./set-data');
-const github = require('./github-auth');
+import helper from './helper';
+import userSaidYes from './user-said-yes';
+import setData from './set-data';
+import github from './github-auth';
 
 process.stdin.resume();
 process.stdin.setEncoding('utf8');
 
-const folder = path.resolve(process.env.HOME + '/.cagor');
-const log = path.resolve(folder + '/install.log');
-
-try {
-  fs.mkdir(folder)
-}
-catch (err) {
-
-}
-
-const strm = fs.createWriteStream(log, {end: false});
 
 async.series({
 
-  username: setData('Please enter your Github username:'),
-  password: setData('Please enter your Github password:')
+    username: setData('Please enter your Github username:'),
+    password: setData('Please enter your Github password:')
 
-}, function (err, results) {
-  if (err) {
-    console.log(err.stack || err);
-    process.exit(1);
-  }
-  else {
-    console.log('onUserDataReceived');
+  },
+
+  (err, results) => {
+
+    if (err) {
+      throw err;
+    }
+
     onUserDataReceived(results);
-  }
-});
+
+  });
 
 function onUserDataReceived(data) {
 
@@ -63,8 +51,6 @@ function onUserDataReceived(data) {
     password: password
   });
 
-  helper = helperModule(github);
-
   async.waterfall([
 
     helper.cleanCache('Do you want to run "$ npm cache clean"? ("yes"/"no")'),
@@ -72,94 +58,80 @@ function onUserDataReceived(data) {
     helper.pickOrg,
     helper.verifyCWD
 
-  ], function (err, result) {
+  ], (err, result) => {
 
     if (err) {
-      console.log(err.stack || err);
-      return process.exit(1);
+      throw err;
     }
 
-    github.repos.getForOrg({
+    github.repos.getForOrg({org: result}, (err: any, res: string) => {
 
-      org: result
-
-    }, function (err, res) {
       if (err) {
-        console.error(err.stack || err);
-        process.exit(1);
+        throw err;
       }
-      else {
 
-        ijson.parse(res).then(function (json) {
 
-            const cloneUrls = json.map(item => String(item.clone_url));
+      ijson.parse(res).then(function (json) {
 
-            async.mapSeries(cloneUrls, function (item, cb) {
+        const cloneUrls = json.map(item => String(item.clone_url));
 
-              setData('\n => Do you wish to clone and build the following git repo => ' + item, function (text, cb) {
-                if (userSaidYes(text)) {
-                  cb(null, item);
-                }
-                else {
-                  cb(null, null);
-                }
+        async.mapSeries(cloneUrls, function (item, cb) {
 
-              })(cb);
+          setData('\n => Do you wish to clone and build the following git repo => ' + item, function (text, cb) {
+            if (userSaidYes(text)) {
+              cb(null, item);
+            }
+            else {
+              cb(null, null);
+            }
 
-            }, function (err, results) {
+          })(cb);
 
-              const filteredResults = results.filter(item => !!item);
-              console.log(' => The following repos will be cloned to your local machine:\n',
-                filteredResults.map((item, i) => i + '\n => ' + item));
+        }, function (err, results) {
 
-              async.mapLimit(filteredResults, 3, function (item, cb) {
+          const filteredResults = results.filter(Boolean);
 
-                const endian = path.basename(path.normalize(item).split('/').pop()).replace('.git', '');
+          console.log(' => The following repos will be cloned to your local machine:\n',
+            filteredResults.map((item, i) => i + '\n => ' + item));
 
-                const k = cp.spawn('bash');
+          async.mapLimit(filteredResults, 3, function (item, cb) {
 
-                k.stdout.setEncoding('utf8');
-                k.stderr.setEncoding('utf8');
+            const endian = path.basename(path.normalize(item).split('/').pop()).replace('.git', '');
 
-                const cmd = 'git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && chmod -R 777 . && npm install';
+            const k = cp.spawn('bash');
 
-                k.stdin.write('\n' + cmd + '\n');
+            k.stdout.setEncoding('utf8');
+            k.stderr.setEncoding('utf8');
 
-                process.nextTick(function () {
-                  k.stdin.end();
-                });
+            const cmd = 'git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && chmod -R 777 . && npm i --silent';
 
-                k.stderr.pipe(strm);
+            k.stdin.end(cmd);
+            k.stderr.pipe(process.stderr);
 
-                k.once('close', function (code) {
-                  if (code > 0) {
-                    console.log(' => The following item may not have been cloned or built correctly =>', '\n',
-                      item);
-                  }
-                  cb();
-                });
-
-              }, function complete(err, results) {
-                if (err) {
-                  console.log(err.stack);
-                  process.exit(1);
-                }
-                else {
-                  const count = results.length;
-                  console.log('\n\n => All done here => ' +
-                    (results.length > 0 ? count + ' Github repos cloned.' : ' 0 Github repos cloned.'));
-                  process.exit(0);
-                }
-
-              });
-
+            k.once('close', function (code) {
+              if (code > 0) {
+                console.error(' => The following item may not have been cloned or built correctly =>', '\n', item);
+              }
+              cb();
             });
 
-          },
-          function onRejected(e) {
-            console.log(e.stack || e);
-          })
-      }
+          }, function complete(err, results) {
+
+            if (err) {
+              throw err;
+            }
+
+            const count = results.length;
+            console.log('\n\n => All done here => ' +
+              (results.length > 0 ? count + ' Github repos cloned.' : ' 0 Github repos cloned.'));
+            process.exit(0);
+
+
+          });
+
+        });
+
+      });
 
     });
   });

@@ -1,15 +1,1 @@
-declare const util: any;
-declare const path: any;
-declare const cp: any;
-declare const fs: any;
-declare const async: any;
-declare const ijson: any;
-declare const helperModule: any;
-declare let helper: any;
-declare const userSaidYes: any;
-declare const setData: any;
-declare const github: any;
-declare const folder: any;
-declare const log: any;
-declare const strm: any;
-declare function onUserDataReceived(data: any): void;
+export {};

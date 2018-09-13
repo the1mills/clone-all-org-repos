@@ -1,16 +1,18 @@
 'use strict';
 
-const asyncNoop = function (text, cb) {
+import {EVCb} from "./index";
+
+const asyncNoop =  (text: string, cb: EVCb<string>) => {
   process.nextTick(function () {
     cb(null, text);
   });
 };
 
-module.exports = function setData(prompt, fn) {
+export default function setData(prompt: string, fn?: typeof asyncNoop) {
 
   fn = fn || asyncNoop;
 
-  return function captureData(cb) {
+  return (cb: EVCb<string>) => {
 
     let called = false;
 
@@ -18,21 +20,19 @@ module.exports = function setData(prompt, fn) {
       first(new Error('User response was not received.'));
     }, 200000);
 
-    function first() {
+    function first(err: any, text?: string) {
       if (!called) {
         clearTimeout(to);
         called = true;
-        cb.apply(null, arguments);
+        return cb.apply(null, arguments);
       }
-      else {
-        console.log.apply(console, arguments);
-      }
+
+      console.error.apply(console, arguments);
     }
 
     console.log(' ~ caGor says ~> ', prompt);
 
-    process.stdin.on('data', function (text) {
-      process.stdin.removeAllListeners();
+    process.stdin.once('data', function (text) {
       const userResponse = String(text).trim();
       fn(userResponse, first);
     });

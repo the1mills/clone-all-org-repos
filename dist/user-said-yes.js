@@ -1,4 +1,7 @@
 'use strict';
-module.exports = function userSaidYes(text) {
-    return ['yes', 'y', 'jeah', 'yee-haw'].indexOf(String(text).trim().toLowerCase()) >= 0;
-};
+Object.defineProperty(exports, "__esModule", { value: true });
+function userSaidYes(text) {
+    return String(text || '').toLowerCase().startsWith('ye');
+}
+exports.default = userSaidYes;
+;
