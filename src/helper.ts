@@ -2,44 +2,36 @@
 
 //core
 import assert = require('assert');
-import github from "./github-auth";
 import * as path from 'path';
 import * as cp from 'child_process';
-import log from "./logger";
+import * as fs from 'fs';
 
 //npm
 import * as ijson from "siamese";
 import * as async from 'async';
+import chalk from "chalk";
+
 
 //project
-import userSaidYes from './user-said-yes';
-import setData from './set-data';
+import {promptStr, userSaidYes} from './utils';
 import {rl} from "./rl";
 import {EVCb} from "./index";
-
-const cwd = process.cwd();
+import log from "./logger";
+import github from "./github-auth";
 
 
 export default {
 
-  cleanCache(msg: string) {
-    return setData(msg, function (text, cb) {
+  cleanCache(cb: EVCb<any>) {
 
-      if (userSaidYes(text)) {
-        console.log(' => Cleaning npm cache...');
-        const interval = setInterval(function () {
-          process.stdout.write('.');
-        }, 200);
-        cp.exec('npm cache clean', function (err) {
-          clearInterval(interval);
-          cb(err, null);
-        });
+    rl.question(promptStr('Do you want to clear the NPM cache? '), a => {
+
+      if (!userSaidYes(a)) {
+        return cb(null, null);
       }
-      else {
-        process.nextTick(function () {
-          cb(null, null)
-        });
-      }
+
+      cp.exec('npm cache clean', cb);
+
     });
 
   },
@@ -69,8 +61,8 @@ export default {
 
       cb(null, res.map((item: any, index: number) => {
         const login = item.organization && item.organization.login;
-        console.log('[' + (index + 1) + '] =>', login);
-        return String(login || 'unknown').toUpperCase();
+        login && console.log('=>', chalk.cyan.bold(login));
+        return String(login || ' *** unknown *** ').toUpperCase();
       }));
 
     });
@@ -80,12 +72,12 @@ export default {
 
     (function prompt() {
 
-      rl.question('Please enter the Github organization name you wish to clone repos from:', a => {
+      rl.question(promptStr('Please enter the Github organization name you wish to clone repos from:'), a => {
 
-        rl.close();
+        // rl.close();
 
         if (data.indexOf(a.trim().toUpperCase()) < 0) {
-          log.error(' => Error => User selected a bad organization name, please try again.');
+          log.error('Error => You selected a bad organization name, please try again.');
           return prompt();
         }
 
@@ -99,20 +91,16 @@ export default {
 
   verifyCWD(data: string, cb: EVCb<any>) {
 
-    rl.question('Are you sure you want to clone the Github repos for Github organization => "' +
-      data + '" to the cwd ("yes"/"no") => \n => cwd = "' + cwd + '"', a => {
+    log.info('Your current cwd is: ', process.cwd());
 
-      rl.close();
+    rl.question(promptStr(`Are you sure you want to clone the Github repos for Github organization => "${chalk.bold(data)}" to the cwd ("yes"/"no")`), a => {
 
-      userSaidYes(a) ?
+      // rl.close();
 
-        cb(null, null) :
-
-        cb(
-          new Error(' => User does not wish to install repos in cwd, we are done here, ' +
-            'you must "cd" to the desired directory and re-issue the caGor command.'),
-          null
-        );
+      userSaidYes(a) ? cb(null, null) : cb(
+        new Error('User does not wish to install repos in cwd. You must "cd" to the desired directory and re-issue the caGor command.'),
+        null
+      );
 
     });
 
@@ -120,7 +108,6 @@ export default {
 
 
   chooseRepos(org: string, cb: EVCb<Array<string>>) {
-
 
     github.repos.getForOrg({org}, (err: any, res: string) => {
 
@@ -132,10 +119,9 @@ export default {
 
         const cloneUrls = json.map(item => String(item.clone_url));
 
-        async.mapSeries(cloneUrls, function (item, cb) {
+        async.mapSeries(cloneUrls, (item, cb) => {
 
-          rl.question('=> Do you wish to clone and build the following git repo => ' + item, a => {
-            rl.close();
+          rl.question(promptStr('Do you wish to clone and build the following git repo => ' + item), a => {
             cb(null, userSaidYes(a) ? item : null);
           });
 
@@ -146,28 +132,35 @@ export default {
             return cb(err, null);
           }
 
-
           const filteredResults = results.filter(Boolean);
+          log.info(' => The following repos will be cloned to your local machine:');
+          log.info(filteredResults);
 
-          console.log(' => The following repos will be cloned to your local machine:\n',
-            filteredResults.map((item, i) => i + '\n => ' + item));
+          const strm = fs.createWriteStream(path.resolve(process.cwd() + '/cagor-install.log'));
 
-          async.mapLimit(filteredResults, 3, (item, cb) => {
+          async.mapLimit(filteredResults, 1, (item, cb) => {
+
+            log.info('Cloning:', item, '...');
 
             const endian = path.basename(path.normalize(<string>item).split('/').pop()).replace('.git', '');
-
             const k = cp.spawn('bash');
 
             const cmd = 'git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && chmod -R 777 . && npm i --silent';
 
             k.stdin.end(cmd);
-            k.stderr.pipe(process.stderr);
+            k.stderr.pipe(strm, {end: false});
 
-            k.once('close', function (code) {
+            k.once('close', code => {
+
               if (code > 0) {
-                log.error(' => The following item may not have been cloned or built correctly =>', item);
+                log.error('The following item may not have been cloned or built correctly =>', item);
+                log.error('The following command failed:', cmd);
               }
-              cb();
+              else {
+                strm.write('\n\n\n ... moving to the next repo ... \n\n\n');
+              }
+
+              cb(code);
             });
 
           }, cb);
@@ -179,7 +172,6 @@ export default {
     });
 
   }
-
 
 }
 

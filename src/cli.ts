@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
-process.on('exit', function (code) {
-    console.log(' => caGor is exiting...with code => ' + code);
+import log from './logger';
+
+process.on('exit',  (code) => {
+    console.log();
+    log.warn('cagor is exiting...with code => ' + code);
 });
 
 require('./clone-all-repos');

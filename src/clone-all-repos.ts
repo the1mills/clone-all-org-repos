@@ -2,43 +2,35 @@
 
 //NOTE:  http://mikedeboer.github.io/node-github/#api-repos-getForOrg
 
-//core
-import util = require('util');
-import path = require('path');
-import cp = require('child_process');
-import fs = require('fs');
-
 //npm
 import async = require('async');
-import * as ijson from 'siamese';
 
 //project
 import helper from './helper';
 import github from './github-auth';
-import readline = require('readline');
 import {EVCb} from "./index";
 import log from "./logger";
 import {rl} from "./rl";
+import chalk from "chalk";
+import {promptStr} from "./utils";
 
 
 async.autoInject({
 
     username(cb: EVCb<string>) {
-      rl.question('Please enter your Github username:', a => {
-        rl.close();
+      rl.question(promptStr('Please enter your Github username: '), a => {
         cb(null, a);
       });
     },
 
-
     password(username: string, cb: EVCb<string>) {
-      rl.question('Please enter your Github password:', a => {
-        rl.close();
+      rl.question(promptStr('Please enter your Github password: '), a => {
         cb(null, a);
       });
     },
 
     auth(username: string, password: string, cb: EVCb<any>) {
+      log.info('Authenticating...');
       github.authenticate({
         type: 'basic',
         username: username,
@@ -49,11 +41,13 @@ async.autoInject({
 
     cleanCache(auth: any, cb: EVCb<any>) {
       // helper.cleanCache('Do you want to run "$ npm cache clean"? ("yes"/"no")',cb);
+      log.info('Cleaning cache...');
       process.nextTick(cb);
     },
 
 
     getOrgsList(auth: any, cb: EVCb<any>) {
+      log.info('Retrieving the list of organizations you belong to...');
       helper.getOrgsList(cb);
     },
 

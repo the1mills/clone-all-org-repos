@@ -9,7 +9,7 @@ export const log = {
   warn: console.error.bind(console, chalk.bold.magenta.bold('cagor warn:')),
   error: console.error.bind(console, chalk.redBright.bold('cagor error:')),
   debug: function (...args: any[]) {
-    isDebug && console.log('cagor debug:', ...arguments);
+    isDebug && console.log('cagor debug:', ...args);
   }
 };
 
