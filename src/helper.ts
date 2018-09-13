@@ -1,28 +1,30 @@
 'use strict';
 
 //core
-import cp = require('child_process');
 import assert = require('assert');
+import github from "./github-auth";
+import * as path from 'path';
+import * as cp from 'child_process';
+import log from "./logger";
 
 //npm
-import ijson = require('siamese');
+import * as ijson from "siamese";
+import * as async from 'async';
 
 //project
 import userSaidYes from './user-said-yes';
 import setData from './set-data';
+import {rl} from "./rl";
+import {EVCb} from "./index";
 
 const cwd = process.cwd();
-
-////////////////////////////////////////////////////////
-
-import github from './github-auth';
-import {EVCb} from "./index";
 
 
 export default {
 
   cleanCache(msg: string) {
     return setData(msg, function (text, cb) {
+
       if (userSaidYes(text)) {
         console.log(' => Cleaning npm cache...');
         const interval = setInterval(function () {
@@ -38,72 +40,146 @@ export default {
           cb(null, null)
         });
       }
-    })
+    });
+
   },
 
-  getOrgsList(data: any, cb: EVCb<any>) {
+  getOrgsList(cb: EVCb<any>) {
 
-    github.orgs.getOrganizationMemberships({state: 'active'}, function (err: any, res: string) {
+    github.orgs.getOrganizationMemberships({state: 'active'}, (err: any, res: any) => {
 
       if (err) {
-        return cb(err);
+        return cb(err, null);
       }
 
-      ijson.parse(res).then(function (val) {
+      try {
+        res = <Array<any>>JSON.parse(res);
+      }
+      catch (err) {
+        // ignore
+      }
 
-        assert(Array.isArray(val), ' Github API response was not any array.');
+      assert(Array.isArray(res), ' Github API response was not any array.');
 
-        if (val.length) {
-          console.log('You have an active account (not pending) with the following organizations =>', '\n');
-        }
-        else {
-          return cb(new Error('You do not belong to any organizations on Github.'));
-        }
-        val = val.map((item, index) => {
-          const login = item.organization.login;
-          console.log('[' + (index + 1) + '] =>', login);
-          return String(login).toUpperCase();
-        });
+      if (res.length < 1) {
+        return cb(new Error('You do not belong to any organizations on Github.'), null);
+      }
 
-        console.log('\n');
-        cb(null, val);
+      console.log('You have an active account (not pending) with the following organizations =>', '\n');
 
-      }, cb);
-
+      cb(null, res.map((item: any, index: number) => {
+        const login = item.organization && item.organization.login;
+        console.log('[' + (index + 1) + '] =>', login);
+        return String(login || 'unknown').toUpperCase();
+      }));
 
     });
   },
 
-  pickOrg(data: any, cb: EVCb<any>) {
-    const msg = 'Please enter the Github organization name you wish to clone repos from:';
-    setData(msg, function response(text, cb) {
-      console.log('text => ', text);
-      if (false && data.indexOf(String(text).trim().toUpperCase()) < 0) {
-        console.log(' => Error => User selected a bad organization name, please try again.');
-        setData.apply(null, [msg, response])(cb);
-      }
-      else {
-        cb(null, text);
-      }
-    })(cb);
+  pickOrg(data: Array<string>, cb: EVCb<any>) {
+
+    (function prompt() {
+
+      rl.question('Please enter the Github organization name you wish to clone repos from:', a => {
+
+        rl.close();
+
+        if (data.indexOf(a.trim().toUpperCase()) < 0) {
+          log.error(' => Error => User selected a bad organization name, please try again.');
+          return prompt();
+        }
+
+        cb(null, a);
+
+      });
+
+    })();
+
   },
 
-  verifyCWD(data: any, cb: EVCb<any>) {
-    setData('Are you sure you want to clone the Github repos for Github organization => "' +
-      data + '" to the cwd ("yes"/"no") => \n => cwd = "' + cwd + '"', function (text, cb) {
-      if (userSaidYes(text)) {
-        process.nextTick(function () {
-          cb(null, data); // pass org name down
-        });
+  verifyCWD(data: string, cb: EVCb<any>) {
+
+    rl.question('Are you sure you want to clone the Github repos for Github organization => "' +
+      data + '" to the cwd ("yes"/"no") => \n => cwd = "' + cwd + '"', a => {
+
+      rl.close();
+
+      userSaidYes(a) ?
+
+        cb(null, null) :
+
+        cb(
+          new Error(' => User does not wish to install repos in cwd, we are done here, ' +
+            'you must "cd" to the desired directory and re-issue the caGor command.'),
+          null
+        );
+
+    });
+
+  },
+
+
+  chooseRepos(org: string, cb: EVCb<Array<string>>) {
+
+
+    github.repos.getForOrg({org}, (err: any, res: string) => {
+
+      if (err) {
+        return cb(err, null);
       }
-      else {
-        process.nextTick(function () {
-          cb(new Error(' => User does not wish to install repos in cwd, we are done here, ' +
-            'you must "cd" to the desired directory and re-issue the caGor command.'));
+
+      ijson.parse(res).then((json: Array<{ clone_url: string }>) => {
+
+        const cloneUrls = json.map(item => String(item.clone_url));
+
+        async.mapSeries(cloneUrls, function (item, cb) {
+
+          rl.question('=> Do you wish to clone and build the following git repo => ' + item, a => {
+            rl.close();
+            cb(null, userSaidYes(a) ? item : null);
+          });
+
+
+        }, (err, results) => {
+
+          if (err) {
+            return cb(err, null);
+          }
+
+
+          const filteredResults = results.filter(Boolean);
+
+          console.log(' => The following repos will be cloned to your local machine:\n',
+            filteredResults.map((item, i) => i + '\n => ' + item));
+
+          async.mapLimit(filteredResults, 3, (item, cb) => {
+
+            const endian = path.basename(path.normalize(<string>item).split('/').pop()).replace('.git', '');
+
+            const k = cp.spawn('bash');
+
+            const cmd = 'git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && chmod -R 777 . && npm i --silent';
+
+            k.stdin.end(cmd);
+            k.stderr.pipe(process.stderr);
+
+            k.once('close', function (code) {
+              if (code > 0) {
+                log.error(' => The following item may not have been cloned or built correctly =>', item);
+              }
+              cb();
+            });
+
+          }, cb);
+
         });
-      }
-    })(cb);
+
+      });
+
+    });
+
   }
+
 
 }
 

@@ -1,5 +1,5 @@
 .idea
 node_modules
 *.log
-yarn.lock
-package-lock.json
+dist/*
+!dist/readme.md

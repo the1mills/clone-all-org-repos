@@ -9,18 +9,18 @@ function setData(prompt, fn) {
     fn = fn || asyncNoop;
     return (cb) => {
         let called = false;
-        const to = setTimeout(function () {
-            first(new Error('User response was not received.'));
-        }, 200000);
-        function first(err, text) {
+        const first = (err, text) => {
             if (!called) {
                 clearTimeout(to);
                 called = true;
                 return cb.apply(null, arguments);
             }
             console.error.apply(console, arguments);
-        }
-        console.log(' ~ caGor says ~> ', prompt);
+        };
+        const to = setTimeout(function () {
+            first(new Error('User response was not received.'));
+        }, 200000);
+        console.log(' ~ caGor says ~> ', '\n', prompt);
         process.stdin.once('data', function (text) {
             const userResponse = String(text).trim();
             fn(userResponse, first);
