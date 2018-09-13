@@ -11,7 +11,6 @@ import github from './github-auth';
 import {EVCb} from "./index";
 import log from "./logger";
 import {rl} from "./rl";
-import chalk from "chalk";
 import {promptStr} from "./utils";
 
 

@@ -11,7 +11,6 @@ import * as ijson from "siamese";
 import * as async from 'async';
 import chalk from "chalk";
 
-
 //project
 import {promptStr, userSaidYes} from './utils';
 import {rl} from "./rl";

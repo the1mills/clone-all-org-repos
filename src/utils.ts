@@ -2,8 +2,7 @@
 
 import chalk from "chalk";
 
-
-export const  userSaidYes = (text: string): boolean => {
+export const userSaidYes = (text: string): boolean => {
   return String(text || '').trim().toLowerCase().startsWith('y');
 };
 
