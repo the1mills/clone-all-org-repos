@@ -9,5 +9,3 @@ export const r2gSmokeTest =  () => {
     return true;
 };
 
-
-

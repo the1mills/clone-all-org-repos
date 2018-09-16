@@ -108,63 +108,67 @@ export default {
 
   chooseRepos(org: string, cb: EVCb<Array<string>>) {
 
-    github.repos.getForOrg({org}, (err: any, res: string) => {
+    github.repos.getForOrg({org}, (err: any, res: any) => {
 
       if (err) {
         return cb(err, null);
       }
 
-      ijson.parse(res).then((json: Array<{ clone_url: string }>) => {
+      try {
+        res = <Array<{ clone_url: string }>>JSON.parse(res);
+      }
+      catch (err) {
+        // ignore
+      }
 
-        const cloneUrls = json.map(item => String(item.clone_url));
 
-        async.mapSeries(cloneUrls, (item, cb) => {
+      const cloneUrls = res.map(item => item.clone_url);
 
-          rl.question(promptStr('Do you wish to clone and build the following git repo => ' + item), a => {
-            cb(null, userSaidYes(a) ? item : null);
+      async.mapSeries(cloneUrls, (item, cb) => {
+
+        rl.question(promptStr('Do you wish to clone and build the following git repo => ' + item), a => {
+          cb(null, userSaidYes(a) ? item : null);
+        });
+
+
+      }, (err, results) => {
+
+        if (err) {
+          return cb(err, null);
+        }
+
+        const filteredResults = results.filter(Boolean);
+        log.info(' => The following repos will be cloned to your local machine:');
+        log.info(filteredResults);
+
+        const strm = fs.createWriteStream(path.resolve(process.cwd() + '/cagor-install.log'));
+
+        async.mapLimit(filteredResults, 1, (item, cb) => {
+
+          log.info('Cloning:', item, '...');
+
+          const endian = path.basename(path.normalize(<string>item).split('/').pop()).replace('.git', '');
+          const k = cp.spawn('bash');
+
+          const cmd = 'git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && chmod -R 777 . && npm i --silent';
+
+          k.stdin.end(cmd);
+          k.stderr.pipe(strm, {end: false});
+
+          k.once('close', code => {
+
+            if (code > 0) {
+              log.error('The following item may not have been cloned or built correctly =>', item);
+              log.error('The following command failed:', cmd);
+            }
+            else {
+              strm.write('\n\n\n ... moving to the next repo ... \n\n\n');
+            }
+
+            cb(code);
           });
 
-
-        }, (err, results) => {
-
-          if (err) {
-            return cb(err, null);
-          }
-
-          const filteredResults = results.filter(Boolean);
-          log.info(' => The following repos will be cloned to your local machine:');
-          log.info(filteredResults);
-
-          const strm = fs.createWriteStream(path.resolve(process.cwd() + '/cagor-install.log'));
-
-          async.mapLimit(filteredResults, 1, (item, cb) => {
-
-            log.info('Cloning:', item, '...');
-
-            const endian = path.basename(path.normalize(<string>item).split('/').pop()).replace('.git', '');
-            const k = cp.spawn('bash');
-
-            const cmd = 'git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && chmod -R 777 . && npm i --silent';
-
-            k.stdin.end(cmd);
-            k.stderr.pipe(strm, {end: false});
-
-            k.once('close', code => {
-
-              if (code > 0) {
-                log.error('The following item may not have been cloned or built correctly =>', item);
-                log.error('The following command failed:', cmd);
-              }
-              else {
-                strm.write('\n\n\n ... moving to the next repo ... \n\n\n');
-              }
-
-              cb(code);
-            });
-
-          }, cb);
-
-        });
+        }, cb);
 
       });
 

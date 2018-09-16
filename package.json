@@ -11,6 +11,7 @@
   "author": "Olegzandr VD",
   "license": "MIT",
   "dependencies": {
+    "@octokit/rest": "^15.11.2",
     "async": "^2.6.1",
     "chalk": "^2.4.1",
     "github": "^1.4.0",
