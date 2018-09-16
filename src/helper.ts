@@ -46,17 +46,9 @@ export default {
 
       try {
         res = <Array<any>>JSON.parse(res);
-      }
-      catch (err) {
-        // ignore
-      }
-
-      res = res.data || res;
-
-      log.info('res:', res);
-
-      try {
+        res = res.data || res;
         assert(Array.isArray(res), ' Github API response was not any array.');
+
       }
       catch (err) {
         return cb(err, null);
@@ -74,12 +66,11 @@ export default {
     });
   },
 
-
-  userOrOrg(username: string, orgs: Array<string>, cb: EVCb<UserOrOrg>){
+  userOrOrg(username: string, orgs: Array<string>, cb: EVCb<UserOrOrg>) {
 
     log.info('Your username is:', username);
 
-    if(orgs.length < 1){
+    if (orgs.length < 1) {
       log.warn('You do not appear to belong to any orgs, so we will show you repos under your user account only.');
       return process.nextTick(cb, null, 'username')
     }
@@ -94,7 +85,6 @@ export default {
     });
 
   },
-
 
   pickOrg(data: Array<string>, cb: EVCb<any>) {
 
@@ -154,12 +144,12 @@ export default {
 
       try {
         res = JSON.parse(res);
+        res = res.data || res;
+        assert(Array.isArray(res), ' Github API response was not any array.');
       }
       catch (err) {
-        // ignore
+        return cb(err, null);
       }
-
-      res = res.data || res;
 
       const sshUrls = (<Array<{ ssh_url: string }>>res).map(item => item.ssh_url);
       cb(null, sshUrls);
