@@ -1,9 +1,7 @@
 'use strict';
 
 // const GitHubApi = require('github');
-
 import log from "./logger";
-
 const Octokit = require('@octokit/rest');
 
 export default new Octokit({
