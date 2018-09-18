@@ -2,6 +2,8 @@
 
 // const GitHubApi = require('github');
 
+import log from "./logger";
+
 const Octokit = require('@octokit/rest');
 
 export default new Octokit({
@@ -15,3 +17,4 @@ export default new Octokit({
     'user-agent': 'My-Cool-GitHub-App' // GitHub is happy with a unique user agent
   }
 });
+
