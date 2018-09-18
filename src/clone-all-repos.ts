@@ -43,13 +43,14 @@ async.autoInject({
     },
 
     auth(username: string, password: string, cb: EVCb<any>) {
-      log.info('Authenticating...');
+      log.info('Authenticating...with username/password:', username,password);
+      // process.nextTick(cb);
       github.authenticate({
         type: 'basic',
         username: username,
         password: password
       });
-      process.nextTick(cb);
+      process.nextTick(cb, null, github);
     },
 
     cleanCache(auth: any, cb: EVCb<any>) {
@@ -68,6 +69,7 @@ async.autoInject({
       helper.userOrOrg(username, getOrgsList, cb);
     },
 
+// <<<<<<< HEAD
     chooseOrg(cleanCache: any, chooseUserOrOrg: UserOrOrg, getOrgsList: Array<string>, cb: EVCb<string>) {
       if(chooseUserOrOrg === 'username'){
         return process.nextTick(cb, null, []);
@@ -78,6 +80,15 @@ async.autoInject({
     verifyCWD(chooseUserOrOrg: UserOrOrg, username: string, chooseOrg: string, cb: EVCb<any>) {
       const v = chooseUserOrOrg === 'username' ? username : chooseOrg;
       helper.verifyCWD(v, cb);
+// =======
+//     chooseOrg(auth: any, cleanCache: any, getOrgsList: Array<string>, cb: EVCb<string>) {
+//       helper.pickOrg(getOrgsList, cb);
+//     },
+//
+//
+//     verifyCWD(auth: any, chooseOrg: string, cb: EVCb<any>) {
+//       helper.verifyCWD(chooseOrg, cb);
+// >>>>>>> dev
     },
 
     findRepos(chooseUserOrOrg: UserOrOrg, username: string, chooseOrg: string, cb: EVCb<Array<string>>) {
@@ -94,6 +105,10 @@ async.autoInject({
 
     cloneRepos(cleanCache: any, verifyCWD: any, findRepos: Array<string>, cb: EVCb<Array<string>>) {
       helper.cloneRepos(findRepos, cb);
+// =======
+//     chooseRepos( auth: any, cleanCache: any, verifyCWD: any, chooseOrg: string, cb: EVCb<Array<string>>) {
+//       helper.chooseRepos(chooseOrg, cb);
+// >>>>>>> dev
     }
 
   },
