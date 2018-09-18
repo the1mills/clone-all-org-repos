@@ -114,9 +114,11 @@ export default {
         return cb(err, null);
       }
 
-      ijson.parse(res).then((json: Array<{ clone_url: string }>) => {
+      ijson.parse(res).then((json: Array<{ ssh_url: string }>) => {
 
-        const cloneUrls = json.map(item => String(item.clone_url));
+        const cloneUrls = json.map(item => String(item.ssh_url)).map(v => String(v).replace('git@github.com:','git@github.com-the1mills:'));
+        
+        console.log('clone urls: ', cloneUrls);
 
         async.mapSeries(cloneUrls, (item, cb) => {
 
@@ -134,8 +136,10 @@ export default {
           const filteredResults = results.filter(Boolean);
           log.info(' => The following repos will be cloned to your local machine:');
           log.info(filteredResults);
-
-          const strm = fs.createWriteStream(path.resolve(process.cwd() + '/cagor-install.log'));
+          
+          const logfile = path.resolve(process.cwd() + '/cagor-install.log');
+          const strm = fs.createWriteStream(logfile);
+          log.info('See this log file for information:', chalk.bold(logfile));
 
           async.mapLimit(filteredResults, 1, (item, cb) => {
 
@@ -144,7 +148,7 @@ export default {
             const endian = path.basename(path.normalize(<string>item).split('/').pop()).replace('.git', '');
             const k = cp.spawn('bash');
 
-            const cmd = 'git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && chmod -R 777 . && npm i --silent';
+            const cmd = 'ssh-add -D && ssh-add $HOME/.ssh/luma2 && git clone ' + item + ' ' + endian + ' && cd ' + endian + ' && npm i --silent';
 
             k.stdin.end(cmd);
             k.stderr.pipe(strm, {end: false});

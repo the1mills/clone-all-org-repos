@@ -29,13 +29,14 @@ async.autoInject({
     },
 
     auth(username: string, password: string, cb: EVCb<any>) {
-      log.info('Authenticating...');
+      log.info('Authenticating...with username/password:', username,password);
+      // process.nextTick(cb);
       github.authenticate({
         type: 'basic',
         username: username,
         password: password
       });
-      process.nextTick(cb);
+      process.nextTick(cb, null, github);
     },
 
     cleanCache(auth: any, cb: EVCb<any>) {
@@ -51,17 +52,17 @@ async.autoInject({
     },
 
 
-    chooseOrg(cleanCache: any, getOrgsList: Array<string>, cb: EVCb<string>) {
+    chooseOrg(auth: any, cleanCache: any, getOrgsList: Array<string>, cb: EVCb<string>) {
       helper.pickOrg(getOrgsList, cb);
     },
 
 
-    verifyCWD(chooseOrg: string, cb: EVCb<any>) {
+    verifyCWD(auth: any, chooseOrg: string, cb: EVCb<any>) {
       helper.verifyCWD(chooseOrg, cb);
     },
 
 
-    chooseRepos(cleanCache: any, verifyCWD: any, chooseOrg: string, cb: EVCb<Array<string>>) {
+    chooseRepos( auth: any, cleanCache: any, verifyCWD: any, chooseOrg: string, cb: EVCb<Array<string>>) {
       helper.chooseRepos(chooseOrg, cb);
     }
 
